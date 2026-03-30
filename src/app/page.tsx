@@ -154,6 +154,14 @@ export default function Home() {
                     <CardTitle className="text-2xl font-bold leading-tight text-slate-800">
                       {event.title}
                     </CardTitle>
+                    <div className="flex items-center text-sm text-slate-500 mt-2">
+                      <CalendarDays className="w-4 h-4 mr-1.5 text-violet-500" />
+                      {event.date ? new Date(event.date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      }) : "Date TBD"}
+                    </div>
                   </CardHeader>
                   
                   <CardContent className="flex flex-col flex-grow">

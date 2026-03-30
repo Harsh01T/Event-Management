@@ -5,7 +5,7 @@ import { z } from "zod";
 const eventSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
-  date: z.string().datetime(),
+  date: z.preprocess((arg) => typeof arg === "string" ? new Date(arg) : arg, z.date()),
   totalCapacity: z.number().positive(),
 });
 
