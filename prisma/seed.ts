@@ -1,95 +1,86 @@
-import fs from 'fs';
-import path from 'path';
+import "dotenv/config";
+import { PrismaClient } from '@prisma/client';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import bcrypt from 'bcryptjs';
 
-import { PrismaClient } from '@prisma/client'
-import { PrismaMariaDb } from '@prisma/adapter-mariadb'
-import 'dotenv/config'
-
-const adapter = new PrismaMariaDb(process.env.DATABASE_URL as string)
-const prisma = new PrismaClient({ adapter })
+const adapter = new PrismaMariaDb(process.env.DATABASE_URL as string);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('Start seeding ...')
+  console.log('🚀 Starting fresh seeding...');
 
-  await prisma.attendance.deleteMany()
-  await prisma.booking.deleteMany()
-  await prisma.event.deleteMany()
-  await prisma.user.deleteMany()
+  await prisma.attendance.deleteMany();
+  await prisma.booking.deleteMany();
+  await prisma.event.deleteMany();
+  await prisma.user.deleteMany();
 
-  const user1 = await prisma.user.create({
+  const hashedPassword = await bcrypt.hash("demo@123", 10);
+
+  const user = await prisma.user.create({
     data: {
-      name: 'Harsh',
-      email: 'harsh@example.com',
+      name: 'Developer',
+      email: 'demo@test.com',
+      password: hashedPassword,
     },
-  })
+  });
 
-  const user2 = await prisma.user.create({
+  console.log('Creating events for April, May, and June...');
+
+  await prisma.event.create({
     data: {
-      name: 'Alice Developer',
-      email: 'alice@example.com',
+      title: 'Global Tech Expo 2026',
+      description: 'A massive gathering of tech enthusiasts and innovators.',
+      date: new Date("2026-04-12T10:00:00Z"),
+      totalCapacity: 300,
+      remainingTickets: 100,
     },
-  })
+  });
 
-  const event1 = await prisma.event.create({
+  await prisma.event.create({
     data: {
-      title: 'Next.js Global Summit 2026',
-      description: 'The biggest Next.js and React conference of the year. Join us for deep dives into App Router and Server Actions.',
-      date: new Date(new Date().setMonth(new Date().getMonth() + 1)), // 1 month from now
-      totalCapacity: 500,
-      remainingTickets: 499,
+      title: 'React Advanced Workshop',
+      description: 'Deep dive into React Server Components and Next.js 15.',
+      date: new Date("2026-05-05T09:00:00Z"),
+      totalCapacity: 100,
+      remainingTickets: 10,
     },
-  })
+  });
 
-  const event2 = await prisma.event.create({
+  await prisma.event.create({
     data: {
-      title: 'Local MERN Stack Meetup',
-      description: 'A casual meetup for local developers building with Node, Express, React, and databases. Pizza provided!',
-      date: new Date(new Date().setDate(new Date().getDate() + 14)), // 2 weeks from now
+      title: 'Exclusive AI Roundtable',
+      description: 'An intimate discussion on the future of Generative AI.',
+      date: new Date("2026-05-20T18:30:00Z"),
       totalCapacity: 50,
       remainingTickets: 50,
     },
-  })
+  });
 
-  const event3 = await prisma.event.create({
+  await prisma.event.create({
     data: {
-      title: 'Exclusive Developer Workshop',
-      description: 'An intimate workshop focusing on advanced system architecture and database race conditions.',
-      date: new Date(new Date().setDate(new Date().getDate() + 3)), // 3 days from now
-      totalCapacity: 5,
-      remainingTickets: 5,
+      title: 'Full-Stack Summer Camp',
+      description: 'Master the MERN stack in this intensive summer series.',
+      date: new Date("2026-06-15T08:00:00Z"),
+      totalCapacity: 100,
+      remainingTickets: 100,
     },
-  })
+  });
 
-  await prisma.booking.create({
-    data: {
-      userId: user1.id,
-      eventId: event1.id,
-      ticketCount: 1,
-      uniqueCode: "SEED-VIP-001",
-    }
-  })
-
-  const configPath = path.join(process.cwd(), 'src', 'lib', 'config.ts');
-  const content = `export const MOCK_USER_ID = "${user1.id}";`;
-  fs.writeFileSync(configPath, content);
-
-  console.log(`✅ Updated src/lib/config.ts with User ID: ${user1.id}`);
-
-  console.log(`Created users: ${user1.name}, ${user2.name}`)
-  console.log(`Created events: ${event1.title}, ${event2.title}, ${event3.title}`)
-  
-  console.log('\n--- IMPORTANT ---')
-  console.log(`Use this User ID in your frontend (page.tsx): ${user1.id}`)
-  console.log('-----------------\n')
-  
-  console.log('Seeding finished.')
+  console.log('\n--- SEEDING COMPLETE ---');
+  console.log('Events created:');
+  console.log('- April 12: Global Tech Expo (100/300)');
+  console.log('- May 05: React Workshop (10/100)');
+  console.log('- May 20: AI Roundtable (50/50)');
+  console.log('- June 15: Summer Camp (100/100)');
+  console.log('------------------------\n');
 }
 
 main()
   .catch((e) => {
-    console.error(e)
-    process.exit(1)
+    console.error('❌ Seeding failed:', e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });
+  
