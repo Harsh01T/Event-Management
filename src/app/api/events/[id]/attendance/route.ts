@@ -1,48 +1,52 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = await params;
-  const eventId = resolvedParams.id;
-
+export async function POST(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { uniqueCode } = await req.json();
+    const eventId = params.id;
+    const body = await req.json();
+    const { bookingId } = body;
+
+    if (!bookingId) {
+      return NextResponse.json({ success: false, error: "Booking ID is required" }, { status: 400 });
+    }
 
     const booking = await prisma.booking.findUnique({
-      where: { uniqueCode },
-      include: { 
-        event: true,
-        attendance: true 
-      },
+      where: { id: bookingId }
     });
 
-    if (!booking) {
-      return NextResponse.json({ error: "Invalid booking code" }, { status: 404 });
-    }
-
-    if (booking.eventId !== eventId) {
-      return NextResponse.json({ error: "Code not valid for this event" }, { status: 400 });
-    }
-
-    if (booking.attendance) {
+    if (!booking || booking.eventId !== eventId) {
       return NextResponse.json({ 
         success: false, 
-        error: "This ticket has already been used. Duplicate entry denied." 
-      }, { status: 409 }); 
+        error: "Invalid ticket for this specific event" 
+      }, { status: 404 });
     }
 
-    await prisma.attendance.create({
-      data: { bookingId: booking.id },
+    const existingAttendance = await prisma.attendance.findFirst({
+      where: { bookingId: bookingId }
+    });
+
+    if (existingAttendance) {
+      return NextResponse.json({ 
+        success: true, 
+        message: "Ticket already scanned. Access granted!" 
+      });
+    }
+
+    const newAttendance = await prisma.attendance.create({
+      data: { bookingId: bookingId }
     });
 
     return NextResponse.json({ 
       success: true, 
-      message: "Attendance logged successfully",
-      ticketsBooked: booking.ticketCount 
+      message: "Attendance logged successfully", 
+      data: newAttendance 
     });
-
   } catch (error) {
     console.error("Attendance Error:", error);
-    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Failed to log attendance" }, { status: 500 });
   }
 }
